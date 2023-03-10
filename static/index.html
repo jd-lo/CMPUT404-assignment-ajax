@@ -32,8 +32,7 @@ var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
 //Specify method as to not abuse POST polling
-function sendJSONXMLHTTPRequest(method, url, objects = null, callback = null) {
-    //Is objects the parameters of the request?
+function sendJSONXMLHTTPRequest(method, url, objects = {}, callback = null) {
     var xhr = new XMLHttpRequest();
     //Listens for response, then does something w/ it
     xhr.onreadystatechange = function () {
@@ -42,13 +41,14 @@ function sendJSONXMLHTTPRequest(method, url, objects = null, callback = null) {
                 if (xhr.status==200) {
                     //xhr.response from server should be json
                     const data = JSON.parse(xhr.response)
+                    console.log(data)
                     if (callback) {
                         callback(data)
                     }
                 }
             } 
             catch(e) {
-                //console.log('Error: ' + e);
+                console.log('Error: ' + e);
             }
         }
     };
@@ -66,6 +66,9 @@ function sendJSONXMLHTTPRequest(method, url, objects = null, callback = null) {
 
 
 world = {};
+//Technically not unique, but doesn't matter here because who cares
+//Tells server which client is making the requests
+uid = `${(Date.now()).toString(36)}x`;
 
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
@@ -148,16 +151,16 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
-    console.log(entity)
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
     sendJSONXMLHTTPRequest("POST", `/entity/${entity}`, objects = data)
+    drawFrame();
 }
 
 var counter = 0;
 function addEntityWithoutName(data) {
     //var name = "X"+Math.floor((Math.random()*100)+1);
-    var name = "X"+(counter++)%100;
+    var name = uid+(counter++)%100;
     addEntity(name,data);
 }
 
@@ -273,12 +276,17 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 });
 
 
+function drawWorldUpdate(updatedWorld) {
+    world = updatedWorld
+    console.log("Callback activated!")
+    drawNextFrame();
+}
+
 function update() {
-    //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    console.log("updating")
+    //Doesn't work if I omit null object, and supply param callback = drawWorldUpdate
+    sendJSONXMLHTTPRequest("GET", '/world', {}, drawWorldUpdate);
     drawFrame();
-    sendJSONXMLHTTPRequest("GET", '/world', callback = (res) => {
-        world = JSON.parse(res)
-    })
 }
 
 // 30 frames per second
