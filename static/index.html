@@ -3,7 +3,7 @@
   <head> 
     <title>AJAX Assignment</title> 
     <meta charset="utf-8" /> 
-    <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
+    <meta content='width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
         Copyright 2013 Abram Hindle
@@ -31,25 +31,37 @@ var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
 
-
-function sendJSONXMLHTTPRequest(url, objects, callback) {
+//Specify method as to not abuse POST polling
+function sendJSONXMLHTTPRequest(method, url, objects = null, callback = null) {
+    //Is objects the parameters of the request?
     var xhr = new XMLHttpRequest();
+    //Listens for response, then does something w/ it
     xhr.onreadystatechange = function () {
         if (xhr.readyState==4) {
             try {
                 if (xhr.status==200) {
-                    //XXX: parse some JSON from the request!
-                    //XXX: Pass the data to the callback!
+                    //xhr.response from server should be json
+                    const data = JSON.parse(xhr.response)
+                    if (callback) {
+                        callback(data)
+                    }
                 }
             } 
             catch(e) {
-                alert('Error: ' + e.name);
+                //console.log('Error: ' + e);
             }
         }
     };
-    //XXX: POST to a URL
-    //XXX: set the mimetype and the accept headers!
-    // Remember to use application/json !
+    //Initialize the request
+    xhr.open(method, url)
+
+    //Add headers
+    xhr.setRequestHeader("Content-Type", "application/json")
+    xhr.setRequestHeader("Accept", "application/json, text/html") //Might not even need text/html
+    
+    //Send the request
+    req = JSON.stringify(objects)
+    xhr.send(req)
 }
 
 
@@ -59,7 +71,7 @@ world = {};
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
-        lineWidth = 3;
+        lineWidth = 2;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
@@ -83,7 +95,7 @@ function prepEntity(entity) {
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
-	fillStyle = "#000";
+	fillStyle = "#EEE";
 	fillRect(0,0,W,H);
     }
 
@@ -136,9 +148,10 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
+    console.log(entity)
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    //XXX: Send a XHTML Request that updates the entity you just modified!
+    sendJSONXMLHTTPRequest("POST", `/entity/${entity}`, objects = data)
 }
 
 var counter = 0;
@@ -263,10 +276,15 @@ mouse.mousedraggers.push(function(x,y,clicked,e) {
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
     drawFrame();
+    sendJSONXMLHTTPRequest("GET", '/world', callback = (res) => {
+        world = JSON.parse(res)
+        drawNextFrame()
+    })
 }
 
 // 30 frames per second
-setInterval( update, 1000/30.0);
+const fps = 1.0
+setInterval(update, 1000/30);
 
 
 
