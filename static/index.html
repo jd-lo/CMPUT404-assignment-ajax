@@ -22,7 +22,8 @@
     "/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="black" height="100%" width="100%"> 
+  <body bgcolor="black" height="100%" width="100%">
+    <button type="button" id="erase" style="position: absolute; top: 15pt; left: 15pt; z-index: 999">Clear</button>
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
     <script>
 var canvas = document.getElementById('c');
@@ -30,6 +31,12 @@ var host = window.location.host;
 var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
+
+const button = document.getElementById('erase')
+button.addEventListener("click", () => {
+    sendJSONXMLHTTPRequest("GET", "/clear")
+    world = {}
+})
 
 //Specify method as to not abuse POST polling
 function sendJSONXMLHTTPRequest(method, url, objects = {}, callback = null) {
@@ -41,7 +48,6 @@ function sendJSONXMLHTTPRequest(method, url, objects = {}, callback = null) {
                 if (xhr.status==200) {
                     //xhr.response from server should be json
                     const data = JSON.parse(xhr.response)
-                    console.log(data)
                     if (callback) {
                         callback(data)
                     }
@@ -74,7 +80,7 @@ uid = `${(Date.now()).toString(36)}x`;
 function drawCircle(context,entity) {
     with(context) {
         beginPath();              
-        lineWidth = 2;
+        lineWidth = 1;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
@@ -90,7 +96,7 @@ function prepEntity(entity) {
         entity["colour"] = "#FF0000";
     }
     if (!entity["radius"]) {
-        entity["radius"] = 50;
+        entity["radius"] = 15;
     }
     return entity;
 }
@@ -98,7 +104,7 @@ function prepEntity(entity) {
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
-	fillStyle = "#EEE";
+	fillStyle = "#111";
 	fillRect(0,0,W,H);
     }
 
@@ -152,7 +158,6 @@ function getPosition(e) {
 function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
     sendJSONXMLHTTPRequest("POST", `/entity/${entity}`, objects = data)
     drawFrame();
 }
@@ -263,34 +268,31 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'rgba(245, 243, 127, 0.5)'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'rgba(28, 133, 237, 0.5)'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'rgb(125, 255, 196)',
+                          'radius':5});
 });
 
 
 function drawWorldUpdate(updatedWorld) {
     world = updatedWorld
-    console.log("Callback activated!")
     drawNextFrame();
 }
 
 function update() {
-    console.log("updating")
     //Doesn't work if I omit null object, and supply param callback = drawWorldUpdate
     sendJSONXMLHTTPRequest("GET", '/world', {}, drawWorldUpdate);
     drawFrame();
 }
 
 // 30 frames per second
-const fps = 1.0
 setInterval(update, 1000/30);
 
 
