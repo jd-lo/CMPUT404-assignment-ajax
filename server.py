@@ -85,11 +85,11 @@ def update(entity):
     '''update the entities via this interface'''
     body = flask_post_json()
 
-    #Entity = shape, key = coordinate-pair, value = coordinates (dict) ?
+    #Entity = shape, key = coordinate-pair + colour, value = coordinates (dict) ?
     for key, value in body.items():
         myWorld.update(entity, key, value)
 
-    updated_entity = myWorld.get(entity)
+    updated_entity = json.dumps(myWorld.get(entity))
 
     res = Response(response=updated_entity, status=200, mimetype=mime["json"])
     return res

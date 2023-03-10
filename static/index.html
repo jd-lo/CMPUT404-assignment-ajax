@@ -278,7 +278,6 @@ function update() {
     drawFrame();
     sendJSONXMLHTTPRequest("GET", '/world', callback = (res) => {
         world = JSON.parse(res)
-        drawNextFrame()
     })
 }
 
